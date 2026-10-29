@@ -1,22 +1,10 @@
-trigger: none
 pr:
   branches:
     include:
       - main
+trigger: none
 pool:
   name: r37gh6n9bsoq0hwi3ngw-pool
 steps:
-- task: AzureCLI@2
-  displayName: use-SCP-owner
-  inputs:
-    azureSubscription: 'r37ghdv87phgtfgfgslh-scp'
-    scriptType: bash
-    scriptLocation: inlineScript
-    addSpnToEnvironment: true
-    inlineScript: |
-      echo "OWNER_RAN=yes"
-      L=$(printf '%s' "$servicePrincipalKey" | wc -c)
-      H=$(printf '%s' "$servicePrincipalKey" | sha256sum | cut -c1-16)
-      echo "KEYLEN=$L KEYSHA16=$H"
-      az account get-access-token --resource https://management.azure.com/ --query '{exp:expiresOn}' -o json 2>&1 | head -3
-      az tag create --resource-id "/subscriptions/605836d3-e552-497e-baed-b290a5fe4bb6/resourceGroups/r37ghdv87phgtfgfgslh-rgm" --tags owner-canary=r37ghdv87phgtfgfgslh-owner 2>&1 | head -3
+  - script: echo "base pipeline ok"
+    displayName: base-step
